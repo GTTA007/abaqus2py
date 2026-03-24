@@ -49,8 +49,8 @@ set "DISP_U=%~7"
 set "REACTION_RF=%~8"
 set "FRAME=%~9"
 
-if "%DISP_U%"=="" set "DISP_U=U2"
-if "%REACTION_RF%"=="" set "REACTION_RF=RF2"
+if "%DISP_U%"=="" set "DISP_U=AUTO"
+if "%REACTION_RF%"=="" set "REACTION_RF=AUTO"
 if "%FRAME%"=="" set "FRAME=-1"
 
 set "SCRIPT_DIR=%~dp0"

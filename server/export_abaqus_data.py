@@ -17,6 +17,7 @@ from __future__ import print_function
 import os
 import sys
 import csv
+import re
 
 from odbAccess import openOdb
 from abaqusConstants import INTEGRATION_POINT
@@ -29,8 +30,8 @@ def parse_args(argv):
         'node_set': None,
         'disp_node_set': None,
         'reaction_node_sets': None,
-        'disp_u': 'U2',
-        'reaction_rf': 'RF2',
+        'disp_u': None,
+        'reaction_rf': None,
         'frame': '-1',
         'out_dir': 'export',
     }
@@ -63,9 +64,9 @@ def parse_args(argv):
             elif key == '--reaction-node-sets':
                 args['reaction_node_sets'] = value
             elif key == '--disp-u':
-                args['disp_u'] = value
+                args['disp_u'] = value.strip() or None
             elif key == '--reaction-rf':
-                args['reaction_rf'] = value
+                args['reaction_rf'] = value.strip() or None
             elif key == '--frame':
                 args['frame'] = value
             elif key == '--out-dir':
@@ -140,6 +141,69 @@ def _normalize_name(name):
     return name.strip().upper().replace('-', '_')
 
 
+def _job_prefix_from_odb_path(odb_path):
+    job_name = os.path.splitext(os.path.basename(odb_path))[0].upper()
+    parts = [x for x in re.split(r'[-_]', job_name) if x]
+    if parts:
+        return parts[0]
+    return job_name
+
+
+def _resolve_export_rule(odb_path, disp_u, reaction_rf):
+    prefix = _job_prefix_from_odb_path(odb_path)
+    rules = {
+        'KC': {
+            'disp_u': 'U1',
+            'reaction_rf': 'RF1',
+            'disp_scale': -1.0,
+            'reaction_scale': 1.0,
+        },
+        'KW': {
+            'disp_u': 'UR1',
+            'reaction_rf': 'RM1',
+            'disp_scale': -1.0,
+            'reaction_scale': -1.0,
+        },
+        'NZ': {
+            'disp_u': 'UR2',
+            'reaction_rf': 'RM2',
+            'disp_scale': -1.0,
+            'reaction_scale': 1.0,
+        },
+        'ZY': {
+            'disp_u': 'U2',
+            'reaction_rf': 'RF2',
+            'disp_scale': 1.0,
+            'reaction_scale': 1.0,
+        },
+    }
+
+    resolved = {
+        'disp_u': 'U2',
+        'reaction_rf': 'RF2',
+        'disp_scale': 1.0,
+        'reaction_scale': 1.0,
+        'prefix': prefix,
+        'source': 'default',
+    }
+
+    if prefix in rules:
+        resolved.update(rules[prefix])
+        resolved['source'] = 'odb_prefix'
+
+    if disp_u and disp_u.upper() != 'AUTO':
+        resolved['disp_u'] = disp_u
+        resolved['disp_scale'] = 1.0
+        resolved['source'] = 'cli_override'
+
+    if reaction_rf and reaction_rf.upper() != 'AUTO':
+        resolved['reaction_rf'] = reaction_rf
+        resolved['reaction_scale'] = 1.0
+        resolved['source'] = 'cli_override'
+
+    return resolved
+
+
 def _find_history_regions_by_name(step, target_name, output_name):
     target_norm = _normalize_name(target_name)
     matches = []
@@ -183,9 +247,20 @@ def _regions_for_set_or_point(odb, step, set_name, output_name):
     return {'mode': 'regions', 'regions': node_regions}
 
 
-def export_load_displacement(odb, step_name, disp_node_set_name, reaction_set_names, disp_u, reaction_rf, out_csv):
+def export_load_displacement(
+    odb,
+    step_name,
+    disp_node_set_name,
+    reaction_set_names,
+    disp_u,
+    reaction_rf,
+    disp_scale,
+    reaction_extra_scale,
+    out_csv,
+):
     step = odb.steps[step_name]
     reaction_scale, reaction_unit = _reaction_unit_info(reaction_rf)
+    reaction_scale = reaction_scale * reaction_extra_scale
 
     disp_regions_info = _regions_for_set_or_point(odb, step, disp_node_set_name, disp_u)
     disp_regions = disp_regions_info['regions']
@@ -229,7 +304,7 @@ def export_load_displacement(odb, step_name, disp_node_set_name, reaction_set_na
                 u_series = _history_series(region, disp_u)
                 u_val = _series_value_at_time(u_series, frame.frameValue)
                 if u_val is not None:
-                    disp_values.append(u_val)
+                    disp_values.append(u_val * disp_scale)
             avg_u = sum(disp_values) / float(len(disp_values)) if disp_values else 0.0
             row.append(avg_u)
             writer.writerow(row)
@@ -303,13 +378,26 @@ def main():
     step_name = args['step']
     disp_node_set_name = args['disp_node_set']
     reaction_set_names = _split_names(args['reaction_node_sets'])
-    disp_u = args['disp_u']
-    reaction_rf = args['reaction_rf']
     frame_idx = int(args['frame'])
     out_dir = args['out_dir']
+    export_rule = _resolve_export_rule(odb_path, args['disp_u'], args['reaction_rf'])
+    disp_u = export_rule['disp_u']
+    reaction_rf = export_rule['reaction_rf']
 
     if not os.path.isdir(out_dir):
         os.makedirs(out_dir)
+
+    print(
+        '[INFO] export rule: prefix=%s source=%s disp=%s x %.1f reaction=%s x %.1f'
+        % (
+            export_rule['prefix'],
+            export_rule['source'],
+            disp_u,
+            export_rule['disp_scale'],
+            reaction_rf,
+            export_rule['reaction_scale'],
+        )
+    )
 
     odb = openOdb(path=odb_path, readOnly=True)
     try:
@@ -323,6 +411,8 @@ def main():
             reaction_set_names,
             disp_u,
             reaction_rf,
+            export_rule['disp_scale'],
+            export_rule['reaction_scale'],
             ld_csv,
         )
         export_stress_cloud(odb, step_name, frame_idx, stress_csv)
