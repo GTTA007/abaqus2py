@@ -22,11 +22,12 @@ def parse_args(argv):
     i = 0
     while i < len(argv):
         key = argv[i]
-        if key in ("--cae", "--out-dir"):
+        norm_key = key.lstrip("-/").lower()
+        if norm_key in ("cae", "out-dir", "out_dir"):
             if i + 1 >= len(argv):
                 raise ValueError("Missing value for %s" % key)
             val = argv[i + 1]
-            if key == "--cae":
+            if norm_key == "cae":
                 args["cae"] = val
             else:
                 args["out_dir"] = val
@@ -41,10 +42,15 @@ def parse_args(argv):
 
 
 def main():
-    argv = sys.argv[1:]
-    if "--" in argv:
-        argv = argv[argv.index("--") + 1 :]
-    args = parse_args(argv)
+    cae_env = os.environ.get("ABAQUS2PY_CAE_PATH")
+    out_env = os.environ.get("ABAQUS2PY_OUT_DIR")
+    if cae_env and out_env:
+        args = {"cae": cae_env, "out_dir": out_env}
+    else:
+        argv = sys.argv[1:]
+        if "--" in argv:
+            argv = argv[argv.index("--") + 1 :]
+        args = parse_args(argv)
 
     cae_path = os.path.abspath(args["cae"])
     out_dir = os.path.abspath(args["out_dir"])

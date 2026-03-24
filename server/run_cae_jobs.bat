@@ -27,12 +27,14 @@ if "%~2"=="" (
 set "CAE_PATH=%~1"
 set "OUT_DIR=%~2"
 set "SCRIPT_DIR=%~dp0"
+set "ABAQUS2PY_CAE_PATH=%CAE_PATH%"
+set "ABAQUS2PY_OUT_DIR=%OUT_DIR%"
 
 echo [INFO] CAE file: %CAE_PATH%
 echo [INFO] Output dir: %OUT_DIR%
 echo [INFO] Exporting all jobs to .inp ...
 
-call abaqus cae noGUI="%SCRIPT_DIR%write_all_inp.py" -- --cae "%CAE_PATH%" --out-dir "%OUT_DIR%"
+call abaqus cae noGUI="%SCRIPT_DIR%write_all_inp.py"
 if errorlevel 1 (
   echo [ERROR] Failed to export .inp files from CAE.
   exit /b 1
