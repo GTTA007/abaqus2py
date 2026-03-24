@@ -104,6 +104,15 @@ def _split_names(csv_text):
     return [x.strip() for x in csv_text.split(',') if x.strip()]
 
 
+def _reaction_unit_info(output_name):
+    upper_name = output_name.upper()
+    if upper_name.startswith('RF'):
+        return 1.0 / 1000.0, 'kN'
+    if upper_name.startswith('RM'):
+        return 1.0 / 1000000.0, 'kNm'
+    return 1.0, None
+
+
 def _history_series(history_region, output_name):
     if output_name not in history_region.historyOutputs:
         return None
@@ -176,6 +185,7 @@ def _regions_for_set_or_point(odb, step, set_name, output_name):
 
 def export_load_displacement(odb, step_name, disp_node_set_name, reaction_set_names, disp_u, reaction_rf, out_csv):
     step = odb.steps[step_name]
+    reaction_scale, reaction_unit = _reaction_unit_info(reaction_rf)
 
     disp_regions_info = _regions_for_set_or_point(odb, step, disp_node_set_name, disp_u)
     disp_regions = disp_regions_info['regions']
@@ -193,7 +203,10 @@ def export_load_displacement(odb, step_name, disp_node_set_name, reaction_set_na
         writer = csv.writer(f)
         header = ['frame_id', 'step_time']
         for set_name in reaction_set_names:
-            header.append('sum_%s__%s' % (reaction_rf, set_name))
+            reaction_label = reaction_rf
+            if reaction_unit:
+                reaction_label = '%s_%s' % (reaction_rf, reaction_unit)
+            header.append('sum_%s__%s' % (reaction_label, set_name))
         header.append('avg_%s__%s' % (disp_u, disp_node_set_name))
         writer.writerow(header)
 
@@ -210,7 +223,7 @@ def export_load_displacement(odb, step_name, disp_node_set_name, reaction_set_na
                     if rf_val is not None:
                         total_rf += rf_val
                         has_rf = True
-                row.append(total_rf if has_rf else 0.0)
+                row.append((total_rf * reaction_scale) if has_rf else 0.0)
 
             for region in disp_regions:
                 u_series = _history_series(region, disp_u)

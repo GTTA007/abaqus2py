@@ -30,9 +30,9 @@ def parse_args():
 def plot_load_displacement(df, out_png, dpi):
     # Prefer displacement on x-axis and load on y-axis
     x_col = [c for c in df.columns if c.startswith('avg_U')]
-    y_col = [c for c in df.columns if c.startswith('sum_RF')]
+    y_col = [c for c in df.columns if c.startswith('sum_')]
     if not x_col or not y_col:
-        raise ValueError('load_displacement.csv missing avg_U*/sum_RF* columns')
+        raise ValueError('load_displacement.csv missing avg_U*/sum_* columns')
 
     x = df[x_col[0]].values
     y = df[y_col[0]].values
