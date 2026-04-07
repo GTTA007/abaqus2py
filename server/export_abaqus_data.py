@@ -6,7 +6,7 @@ Run with:
         --odb job.odb \
         --step Step-1 \
         --disp-node-set RP-TOP \
-        --reaction-node-sets RP-BASE,HNT \
+        --reaction-node-sets RP-BOTTOM \
         --disp-u U2 \
         --reaction-rf RF2 \
         --frame -1 \
@@ -28,10 +28,10 @@ def parse_args(argv):
         'odb': None,
         'step': None,
         'node_set': None,
-        'disp_node_set': None,
-        'reaction_node_sets': None,
-        'disp_u': None,
-        'reaction_rf': None,
+        'disp_node_set': 'RP-top',
+        'reaction_node_sets': 'RP-bottom',
+        'disp_u': 'AUTO',
+        'reaction_rf': 'AUTO',
         'frame': '-1',
         'out_dir': 'export',
     }
@@ -85,11 +85,6 @@ def parse_args(argv):
             args['disp_node_set'] = args['node_set']
         if not args['reaction_node_sets']:
             args['reaction_node_sets'] = args['node_set']
-
-    if not args['disp_node_set']:
-        raise ValueError('--disp-node-set is required (or use --node-set for legacy behavior)')
-    if not args['reaction_node_sets']:
-        raise ValueError('--reaction-node-sets is required (or use --node-set for legacy behavior)')
 
     return args
 
@@ -153,9 +148,9 @@ def _resolve_export_rule(odb_path, disp_u, reaction_rf):
     prefix = _job_prefix_from_odb_path(odb_path)
     rules = {
         'KC': {
-            'disp_u': 'U1',
-            'reaction_rf': 'RF1',
-            'disp_scale': -1.0,
+            'disp_u': 'U3',
+            'reaction_rf': 'RF3',
+            'disp_scale': 1.0,
             'reaction_scale': 1.0,
         },
         'KW': {
@@ -165,8 +160,8 @@ def _resolve_export_rule(odb_path, disp_u, reaction_rf):
             'reaction_scale': -1.0,
         },
         'NZ': {
-            'disp_u': 'UR2',
-            'reaction_rf': 'RM2',
+            'disp_u': 'UR3',
+            'reaction_rf': 'RM3',
             'disp_scale': -1.0,
             'reaction_scale': 1.0,
         },
@@ -388,12 +383,14 @@ def main():
         os.makedirs(out_dir)
 
     print(
-        '[INFO] export rule: prefix=%s source=%s disp=%s x %.1f reaction=%s x %.1f'
+        '[INFO] export rule: prefix=%s source=%s disp_set=%s disp=%s x %.1f reaction_sets=%s reaction=%s x %.1f'
         % (
             export_rule['prefix'],
             export_rule['source'],
+            disp_node_set_name,
             disp_u,
             export_rule['disp_scale'],
+            ','.join(reaction_set_names),
             reaction_rf,
             export_rule['reaction_scale'],
         )

@@ -21,8 +21,8 @@ py -3 local/run_remote_pipeline.py \
   --remote-out-dir D:\abaqus_runs\out \
   --job-name Job-1 \
   --step Step-1 \
-  --disp-node-set RP-TOP \
-  --reaction-node-sets RP-BASE,HNT \
+  --disp-node-set RP-top \
+  --reaction-node-sets RP-bottom \
   --disp-u U2 \
   --reaction-rf RF2 \
   --frame -1 \

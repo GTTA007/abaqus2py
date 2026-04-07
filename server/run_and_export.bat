@@ -29,16 +29,6 @@ if "%~4"=="" (
   exit /b 2
 )
 
-if "%~5"=="" (
-  echo [ERROR] Missing displacement node set.
-  exit /b 2
-)
-
-if "%~6"=="" (
-  echo [ERROR] Missing reaction node sets.
-  exit /b 2
-)
-
 set "CAE_PATH=%~1"
 set "OUT_DIR=%~2"
 set "JOB_NAME=%~3"
@@ -49,6 +39,8 @@ set "DISP_U=%~7"
 set "REACTION_RF=%~8"
 set "FRAME=%~9"
 
+if "%DISP_NODE_SET%"=="" set "DISP_NODE_SET=RP-top"
+if "%REACTION_NODE_SETS%"=="" set "REACTION_NODE_SETS=RP-bottom"
 if "%DISP_U%"=="" set "DISP_U=AUTO"
 if "%REACTION_RF%"=="" set "REACTION_RF=AUTO"
 if "%FRAME%"=="" set "FRAME=-1"
