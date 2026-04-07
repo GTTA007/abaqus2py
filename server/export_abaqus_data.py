@@ -150,7 +150,7 @@ def _resolve_export_rule(odb_path, disp_u, reaction_rf):
         'KC': {
             'disp_u': 'U3',
             'reaction_rf': 'RF3',
-            'disp_scale': 1.0,
+            'disp_scale': -1.0,
             'reaction_scale': 1.0,
         },
         'KW': {
@@ -160,15 +160,15 @@ def _resolve_export_rule(odb_path, disp_u, reaction_rf):
             'reaction_scale': -1.0,
         },
         'NZ': {
-            'disp_u': 'UR3',
-            'reaction_rf': 'RM3',
-            'disp_scale': -1.0,
-            'reaction_scale': 1.0,
+            'disp_u': 'UR2',
+            'reaction_rf': 'RM2',
+            'disp_scale': 1.0,
+            'reaction_scale': -1.0,
         },
         'ZY': {
             'disp_u': 'U2',
             'reaction_rf': 'RF2',
-            'disp_scale': 1.0,
+            'disp_scale': -1.0,
             'reaction_scale': 1.0,
         },
     }
